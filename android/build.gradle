@@ -51,3 +51,58 @@ android {
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
 }
+
+// Auto-patch legacy agora_rtm 1.x Android plugin for modern Flutter embedding
+// where PluginRegistry.Registrar is no longer available.
+afterEvaluate {
+    def rtmProject = rootProject.findProject(':agora_rtm')
+    if (rtmProject == null) {
+        return
+    }
+
+    def patchTask = rootProject.tasks.findByName('patchAgoraRtmLegacyRegistrar')
+    if (patchTask == null) {
+        patchTask = rootProject.tasks.create('patchAgoraRtmLegacyRegistrar') {
+            doLast {
+                def pluginFile = new File(rtmProject.projectDir,
+                        'src/main/kotlin/io/agora/agorartm/AgoraRtmPlugin.kt')
+                if (!pluginFile.exists()) {
+                    return
+                }
+
+                def source = pluginFile.getText('UTF-8')
+                if (!source.contains('PluginRegistry.Registrar')) {
+                    return
+                }
+
+                source = source.replace('import io.flutter.plugin.common.PluginRegistry.Registrar\n', '')
+                source = source.replace('    private var registrar: Registrar? = null\n', '')
+
+                def legacyRegisterBlock = '''
+    companion object {
+        @JvmStatic
+        fun registerWith(registrar: Registrar) {
+            AgoraRtmPlugin().apply {
+                this.registrar = registrar
+                initPlugin(registrar.context(), registrar.messenger())
+            }
+        }
+    }
+'''
+                source = source.replace(legacyRegisterBlock, '\n')
+
+                source = source.replace(
+                        'registrar?.messenger() ?: binding!!.binaryMessenger',
+                        'binding!!.binaryMessenger'
+                )
+
+                pluginFile.write(source, 'UTF-8')
+                logger.lifecycle('Patched legacy agora_rtm Registrar usage in ' + pluginFile)
+            }
+        }
+    }
+
+    rtmProject.tasks.matching { it.name.toLowerCase().contains('kotlin') }.configureEach {
+        dependsOn patchTask
+    }
+}
