@@ -7,8 +7,8 @@ import 'agora_user.dart';
 
 class AgoraSettings {
   final RtcEngine? engine;
-  final AgoraRtmChannel? agoraRtmChannel;
-  final AgoraRtmClient? agoraRtmClient;
+  final StreamChannel? agoraRtmChannel;
+  final RtmClient? agoraRtmClient;
   final AgoraConnectionData? connectionData;
   final List<AgoraUser> users;
   final AgoraUser mainAgoraUser;
@@ -74,8 +74,8 @@ class AgoraSettings {
 
   AgoraSettings copyWith({
     RtcEngine? engine,
-    AgoraRtmChannel? agoraRtmChannel,
-    AgoraRtmClient? agoraRtmClient,
+    StreamChannel? agoraRtmChannel,
+    RtmClient? agoraRtmClient,
     AgoraConnectionData? connectionData,
     List<AgoraUser>? users,
     AgoraUser? mainAgoraUser,

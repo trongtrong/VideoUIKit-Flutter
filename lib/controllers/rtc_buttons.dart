@@ -51,7 +51,9 @@ Future<void> endCall({required SessionController sessionController}) async {
   await sessionController.value.engine?.stopPreview();
   await sessionController.value.engine?.leaveChannel();
   if (sessionController.value.connectionData!.rtmEnabled) {
-    await sessionController.value.agoraRtmChannel?.leave();
+    final rtmChannelName = sessionController.value.connectionData?.rtmChannelName ??
+        sessionController.value.connectionData!.channelName;
+    await sessionController.value.agoraRtmClient?.unsubscribe(rtmChannelName);
     await sessionController.value.agoraRtmClient?.logout();
   }
   await sessionController.value.engine?.release();

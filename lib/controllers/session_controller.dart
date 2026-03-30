@@ -55,17 +55,31 @@ class SessionController extends ValueNotifier<AgoraSettings> {
 
   /// Function to initialize the Agora RTM client.
   Future<void> initializeRtm(
-      AgoraRtmClientEventHandler agoraRtmClientEventHandler) async {
+    AgoraRtmClientEventHandler agoraRtmClientEventHandler,
+    AgoraRtmChannelEventHandler agoraRtmChannelEventHandler,
+  ) async {
     value = value.copyWith(
-      agoraRtmClient: await AgoraRtmClient.createInstance(
-        value.connectionData!.appId,
-      ),
+      generatedRtmId: value.generatedRtmId ??
+          value.connectionData!.rtmUid ??
+          DateTime.now().millisecondsSinceEpoch.toString(),
     );
-    if (value.agoraRtmClient != null) {
-      addListener(() {
-        createRtmClientEvents(agoraRtmClientEventHandler);
-      });
+
+    final (status, client) = await RTM(
+      value.connectionData!.appId,
+      value.generatedRtmId!,
+    );
+
+    if (status.error) {
+      log('Error while initializing RTM SDK: ${status.reason}',
+          level: Level.error.value);
+      return;
     }
+
+    value = value.copyWith(agoraRtmClient: client);
+    createRtmClientEvents(
+      agoraRtmClientEventHandler,
+      agoraRtmChannelEventHandler,
+    );
   }
 
   /// Function to initialize the Agora RTC engine.
@@ -78,7 +92,7 @@ class SessionController extends ValueNotifier<AgoraSettings> {
     log("SDK initialized: ${value.engine}", level: Level.error.value);
     // Getting SDK versions and assigning them
     SDKBuildInfo? rtcVersion = await value.engine?.getVersion();
-    AgoraVersions.staticRTM = await AgoraRtmClient.getSdkVersion();
+    AgoraVersions.staticRTM = '2.2.6';
     if (rtcVersion?.version.toString() != null) {
       AgoraVersions.staticRTC = rtcVersion!.version.toString();
     }
@@ -103,10 +117,13 @@ class SessionController extends ValueNotifier<AgoraSettings> {
   }
 
   void createRtmClientEvents(
-      AgoraRtmClientEventHandler agoraRtmClientEventHandler) {
+    AgoraRtmClientEventHandler agoraRtmClientEventHandler,
+    AgoraRtmChannelEventHandler agoraRtmChannelEventHandler,
+  ) {
     rtmClientEventHandler(
       agoraRtmClient: value.agoraRtmClient!,
       agoraRtmClientEventHandler: agoraRtmClientEventHandler,
+      agoraRtmChannelEventHandler: agoraRtmChannelEventHandler,
       sessionController: this,
     );
   }
@@ -139,11 +156,6 @@ class SessionController extends ValueNotifier<AgoraSettings> {
     await value.engine
         ?.enableDualStreamMode(enabled: agoraChannelData.enableDualStreamMode);
 
-    if (agoraChannelData.localPublishFallbackOption != null) {
-      await value.engine?.setLocalPublishFallbackOption(
-          agoraChannelData.localPublishFallbackOption!);
-    }
-
     if (agoraChannelData.remoteSubscribeFallbackOption != null) {
       await value.engine?.setRemoteSubscribeFallbackOption(
           agoraChannelData.remoteSubscribeFallbackOption!);
@@ -170,7 +182,8 @@ class SessionController extends ValueNotifier<AgoraSettings> {
 
     // [generatedRtmId] is the unique ID for a user generated using the timestamp in milliseconds.
     value = value.copyWith(
-      generatedRtmId: value.connectionData!.rtmUid ??
+      generatedRtmId: value.generatedRtmId ??
+          value.connectionData!.rtmUid ??
           DateTime.now().millisecondsSinceEpoch.toString(),
     );
     await value.engine?.setParameters("{\"rtc.using_ui_kit\": 1}");

@@ -6,12 +6,12 @@ homepage: https://www.agora.io/en/
 repository: https://github.com/AgoraIO-Community/VideoUIKit-Flutter
 
 environment:
-  sdk: ">=2.19.0 <4.0.0"
+  sdk: ">=3.0.0 <4.0.0"
   flutter: ">=2.2.0"
 
 dependencies:
-  agora_rtc_engine: ^6.3.0
-  agora_rtm: ^1.6.3
+  agora_rtc_engine: 6.5.3
+  agora_rtm: 2.2.6
   flutter:
     sdk: flutter
   http: ">=0.13.1 <2.0.0"

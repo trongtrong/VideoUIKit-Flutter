@@ -84,16 +84,6 @@ class AgoraClient {
           level: Level.error.value);
     }
 
-    if (agoraConnectionData.rtmEnabled) {
-      try {
-        await _sessionController.initializeRtm(
-            agoraRtmClientEventHandler ?? AgoraRtmClientEventHandler());
-      } catch (e) {
-        log("Error while initializing Agora RTM SDK. ${e.toString()}",
-            level: Level.error.value);
-      }
-    }
-
     if (agoraChannelData?.clientRoleType ==
             ClientRoleType.clientRoleBroadcaster ||
         agoraChannelData?.clientRoleType == null) {
@@ -107,6 +97,18 @@ class AgoraClient {
       agoraRtmChannelEventHandler ?? AgoraRtmChannelEventHandler(),
       agoraEventHandlers ?? AgoraRtcEventHandlers(),
     );
+
+    if (agoraConnectionData.rtmEnabled) {
+      try {
+        await _sessionController.initializeRtm(
+          agoraRtmClientEventHandler ?? AgoraRtmClientEventHandler(),
+          agoraRtmChannelEventHandler ?? AgoraRtmChannelEventHandler(),
+        );
+      } catch (e) {
+        log("Error while initializing Agora RTM SDK. ${e.toString()}",
+            level: Level.error.value);
+      }
+    }
 
     if (agoraChannelData != null) {
       _sessionController.setChannelProperties(agoraChannelData!);

@@ -7,18 +7,18 @@ class AgoraRtmClientEventHandler {
 
   /// Occurs when the connection state between the SDK and the Agora RTM system changes.
   final void Function(
-          RtmConnectionState state, RtmConnectionChangeReason reason)?
+        RtmLinkState state, RtmLinkStateChangeReason reason)?
       onConnectionStateChanged2;
 
   /// Occurs when the local user receives a peer-to-peer message.
-  final void Function(RtmMessage message, String peerId)? onMessageReceived;
+    final void Function(String message, String peerId)? onMessageReceived;
 
   /// Occurs when your token expires.
   final void Function()? onTokenExpired;
 
   final void Function()? onTokenPrivilegeWillExpire;
 
-  final void Function(Map<String, RtmPeerOnlineState> peersStatus)?
+  final void Function(Map<String, dynamic> peersStatus)?
       onPeersOnlineStatusChanged;
 
   const AgoraRtmClientEventHandler({

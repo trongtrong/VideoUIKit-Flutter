@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:developer';
 
 import 'package:agora_rtm/agora_rtm.dart';
-import 'package:agora_uikit/controllers/rtm_channel_event_handler.dart';
 import 'package:agora_uikit/controllers/session_controller.dart';
 import 'package:agora_uikit/models/agora_rtm_channel_event_handler.dart';
 import 'package:agora_uikit/models/agora_rtm_mute_request.dart';
@@ -13,11 +12,9 @@ import 'package:agora_uikit/src/enums.dart';
 Future<void> rtmMethods(
     {required AgoraRtmChannelEventHandler agoraRtmChannelEventHandler,
     required SessionController sessionController}) async {
+  final _ = agoraRtmChannelEventHandler;
   await _loginToRtm(sessionController);
-  await _joinRtmChannel(
-    agoraRtmChannelEventHandler,
-    sessionController,
-  );
+  await _joinRtmChannel(sessionController);
   await sendUserData(
     toChannel: true,
     username: sessionController.value.connectionData!.username!,
@@ -28,11 +25,15 @@ Future<void> rtmMethods(
 Future<void> _loginToRtm(SessionController sessionController) async {
   if (!sessionController.value.isLoggedIn) {
     try {
-      await sessionController.value.agoraRtmClient?.login(
+      final (status, _) = await sessionController.value.agoraRtmClient!.login(
         sessionController.value.connectionData!.tempRtmToken ??
-            sessionController.value.generatedRtmToken,
-        sessionController.value.generatedRtmId!,
+        sessionController.value.generatedRtmToken ??
+        '',
       );
+      if (status.error) {
+        throw Exception(status.reason);
+      }
+
       sessionController.value =
           sessionController.value.copyWith(isLoggedIn: true);
       log(
@@ -48,39 +49,20 @@ Future<void> _loginToRtm(SessionController sessionController) async {
   }
 }
 
-Future<AgoraRtmChannel?> _createChannel({
-  required String rtmChannelName,
-  required AgoraRtmChannelEventHandler agoraRtmChannelEventHandler,
-  required SessionController sessionController,
-}) async {
-  AgoraRtmChannel? channel = await sessionController.value.agoraRtmClient
-      ?.createChannel(rtmChannelName);
-
-  if (channel != null) {
-    await rtmChannelEventHandler(
-      channel: channel,
-      agoraRtmChannelEventHandler: agoraRtmChannelEventHandler,
-      sessionController: sessionController,
-    );
-  }
-  return channel;
-}
-
-Future<void> _joinRtmChannel(
-    AgoraRtmChannelEventHandler agoraRtmChannelEventHandler,
-    SessionController sessionController) async {
+Future<void> _joinRtmChannel(SessionController sessionController) async {
   if (!sessionController.value.isInChannel) {
     try {
+      final channelName = sessionController.value.connectionData?.rtmChannelName ??
+          sessionController.value.connectionData!.channelName;
+      final (status, _) = await sessionController.value.agoraRtmClient!
+          .subscribe(channelName, withMessage: true, withPresence: true);
+      if (status.error) {
+        throw Exception(status.reason);
+      }
+
       sessionController.value = sessionController.value.copyWith(
-        agoraRtmChannel: await _createChannel(
-          rtmChannelName:
-              sessionController.value.connectionData?.rtmChannelName ??
-                  sessionController.value.connectionData!.channelName,
-          agoraRtmChannelEventHandler: agoraRtmChannelEventHandler,
-          sessionController: sessionController,
-        ),
+        agoraRtmChannel: null,
       );
-      await sessionController.value.agoraRtmChannel?.join();
       sessionController.value =
           sessionController.value.copyWith(isInChannel: true);
     } catch (e) {
@@ -107,16 +89,23 @@ Future<void> sendUserData({
   var json = jsonEncode(userData);
 
   Message message = Message(text: json, ts: ts, offline: false);
-  RtmMessage msg = RtmMessage.fromText(message.text);
 
-  if (sessionController.value.agoraRtmChannel != null && toChannel) {
-    await sessionController.value.agoraRtmChannel?.sendMessage2(msg);
+  if (sessionController.value.agoraRtmClient != null && toChannel) {
+    final channelName = sessionController.value.connectionData?.rtmChannelName ??
+        sessionController.value.connectionData!.channelName;
+    await sessionController.value.agoraRtmClient?.publish(
+      channelName,
+      message.text,
+    );
     log('User data sent to channel', level: Level.info.value);
   } else if (sessionController.value.agoraRtmClient != null &&
       !toChannel &&
       peerRtmId != null) {
-    await sessionController.value.agoraRtmClient
-        ?.sendMessageToPeer2(peerRtmId, msg);
+    await sessionController.value.agoraRtmClient?.publish(
+      peerRtmId,
+      message.text,
+      channelType: RtmChannelType.user,
+    );
     log('User data sent to peer', level: Level.info.value);
   } else {
     log("No user in the channel", level: Level.warning.value);
