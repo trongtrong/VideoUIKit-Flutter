@@ -73,11 +73,6 @@ class RecordingStateButton extends StatelessWidget {
           fillColor: Colors.blueAccent,
           padding: const EdgeInsets.all(12.0),
         );
-      default:
-        return RawMaterialButton(
-          onPressed: () {},
-          child: CircularProgressIndicator(),
-        );
     }
   }
 }

@@ -24,8 +24,6 @@ extension LevelExtension on Level {
         return 900;
       case Level.error:
         return 1000;
-      default:
-        return 800;
     }
   }
 }

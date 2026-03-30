@@ -96,19 +96,6 @@ class _AgoraVideoViewerState extends State<AgoraVideoViewer> {
           disabledVideoWidget: widget.disabledVideoWidget,
           renderModeType: widget.renderModeType,
         );
-      default:
-        return FloatingLayout(
-          client: widget.client,
-          disabledVideoWidget: widget.disabledVideoWidget,
-          floatingLayoutContainerHeight: widget.floatingLayoutContainerHeight,
-          floatingLayoutContainerWidth: widget.floatingLayoutContainerWidth,
-          floatingLayoutMainViewPadding: widget.floatingLayoutMainViewPadding,
-          floatingLayoutSubViewPadding: widget.floatingLayoutSubViewPadding,
-          showAVState: widget.showAVState,
-          enableHostControl: widget.enableHostControls,
-          showNumberOfUsers: widget.showNumberOfUsers,
-          renderModeType: widget.renderModeType,
-        );
     }
   }
 
